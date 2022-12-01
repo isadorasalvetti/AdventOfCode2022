@@ -14,10 +14,6 @@ meHead ls = head ls
 meTail [] = []
 meTail ls = tail ls
 
-fib x
-  | x < 2 = 1
-  | otherwise = fib (x - 1) + fib (x - 2)
-
 main :: IO ()
 main = do
     file <- readFile "input\\day_1.txt"
