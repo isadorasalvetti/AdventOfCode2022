@@ -36,5 +36,7 @@ p2 rucksacks = do
 main = do
     file <- readFile "input\\day_3.txt"
     let rucksacks = words file
+    print $ p1 rucksacks
     print $ p2 rucksacks
+
     
