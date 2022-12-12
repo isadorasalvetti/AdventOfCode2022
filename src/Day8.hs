@@ -82,6 +82,6 @@ main = do
     let treeLines = lines file
     let myTreeMap = treeMap (lines file) 0 0
 
-    -- print $ (visibleTrees 1 1 myTreeMap) + (4*(size-1)) -- P1
+    print $ (visibleTrees 1 1 myTreeMap) + (4*(size-1)) -- P1
     print $ head $ sortBy (\a b -> compare b a) $ viewScoreTrees 1 1 myTreeMap -- P2
     
