@@ -1,68 +1,66 @@
-data Nested = I Int | N [Nested] deriving (Show)
+import Data.Either
+import Text.Parsec.Char
+import Text.Parsec.String
+import Text.Parsec.Combinator
+import Text.Parsec
+import Data.List
+import Data.List (elemIndex)
 
-isDigit x = x `elem` "0123456789"
+data Nested = I Int | N [Nested] deriving (Show, Eq)
 
-parse :: String -> Nested
-parse "[]" = N $ parseNumString ""
-parse ('[':rst)  
-    | '[' `elem` body = N [parse body]
-    | otherwise = N (parseNumString body)
-    where body = init rst
+instance Ord Nested where
+    compare :: Nested -> Nested -> Ordering
+    compare (I a) (I b) = compare a b
+    compare (N []) (N []) = EQ
+    compare (N(_:_)) (N []) = GT
+    compare (N []) (N(_:_)) = LT
 
--- parse ('[':'[':rst) = N [parse ('[':rst)]
--- parse (']':']':rst) = parse (']':rst)
--- parse (a:str) =
---     case rst of
---         ('[':']':some) -> N (nestedNums ++ [parse some])
---         "]" -> N nestedNums
---         ']':_ -> N nestedNums -- TODO
---         '[':_ -> N $ nestedNums ++ [parse (tail (init rst))]
---         _ -> parse rst
---     where (numString, rst) = span (\x -> isDigit x || x == ',') str
---           nestedNums = parseNumString numString
--- parse a = I (-1)
+    compare (N a) (I b) = compare (N a) (N [I b])
+    compare (I a) (N b) = compare (N [I a]) (N b)
 
-parseNumString :: String -> [Nested]
-parseNumString [] = []
-parseNumString str = I (read num) : rem
-    where (num, rst) = span (/=',') str
-          rem = case rst of
-            [] -> []
-            ',':l -> parseNumString l
+    compare (N (a:arst)) (N (b:brst))
+        | (compare a b == EQ) = compare (N arst) (N brst)  -- a == b does not work for reasons
+        | otherwise = compare a b
+
+parseNested :: String -> Either ParseError Nested
+parseNested = parse value ""
+    where
+        value = int <|> list
+        int  = I . read <$> many1 digit
+        list  = N <$> between (symbol '[') (symbol ']') (value `sepBy` symbol ',')
+
+symbol = try . char
+
+parseInput :: [String] -> [(Nested, Nested)]
+parseInput [] = []
+parseInput (a:b:_:rst) = (fromRight (N []) (parseNested a), fromRight (N []) (parseNested b)):parseInput rst
+
+-- getIndices :: [Ordering] -> Int
+getIndices ords = do
+    let correctOrds = filter (\(ord, i) -> ord == LT) (zip ords [1..])
+    let indexSum = foldl (\acc (ord, i) -> acc + i) 0 correctOrds
+    indexSum
+    -- correctOrds
+
+notExpected ords = do
+    let expected = [3, 6, 7, 9, 11, 13, 16, 17, 19, 21, 23, 24, 28, 29, 30, 32, 33, 37, 38, 39, 41, 43, 44, 46, 50, 51, 54, 58, 61, 63, 64, 65, 66, 68, 73, 74, 75, 76, 77, 79, 82, 85, 93, 97, 98, 99, 100, 101, 106, 108, 110, 111, 117, 119, 120, 123, 125, 126, 128, 129, 130, 132, 134, 135, 136, 138, 140, 141, 143, 144, 146, 148, 149, 150]
+    let actual = map snd ords
+    filter (`notElem` actual) expected
+
+newPackets = [N [N [I 2]], N [N [I 6]]]
 
 main = do
-    let all = ["[]", "[0]", "[3]", "[10]", "[1,6]"]
-    print $ map parse all
-    let h1 = ["[[]]", "[[[]]]", "[[[[]]]]"]
-    print $ map parse h1
-    let h2 = ["[1,[]]", "[[],1]"]
-    print h2
-    print $ map parse h2
-
--- parseNested :: String -> Nested
--- parseNested [] = N []
--- parseNested ('[':rst) = N [parseNested rst]
--- parseNested (']':rst) = parseNested rst
-
--- parseNested str
---     | length rest > 0 = N ([makeNums numString] ++ [parseNested rest])
---     | otherwise = makeNums numString
---     where
---         (numString, rest) = span (`notElem` "[]") str
+    file <- readFile "input\\day_13.txt"
+    let parsed = parseInput (lines file)
+    let allPackets = foldl (\acc (a, b) -> acc ++ a:[b]) [] parsed
+    let comparisons = map (uncurry compare) parsed
+    let sorted = sort (allPackets ++ newPackets)
+    
+    -- print $ zip comparisons [1..]
+    let p1 = getIndices comparisons
+    print p1
+    print (elemIndex (head newPackets) sorted, elemIndex (last newPackets) sorted)
 
 
--- makeNums :: String -> Nested
--- makeNums [] = N []
--- makeNums (',':rst) = makeNums rst
--- makeNums str = N ([I $ read num] ++ inside (makeNums rst))
---     where 
---         (num, rst) = span (/= ',') str
 
--- inputPairs :: [String] -> [(Nested, Nested)]
--- inputPairs [] = []
--- inputPairs (f:s:_:rst) = [(parseNested f, parseNested s)] ++ inputPairs rst
 
--- main = do
---     file <- readFile "input\\mock_day_13.txt"
---     print "Ok"
-    -- print $ inputPairs (lines file)
