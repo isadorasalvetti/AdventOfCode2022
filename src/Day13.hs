@@ -4,7 +4,6 @@ import Text.Parsec.String
 import Text.Parsec.Combinator
 import Text.Parsec
 import Data.List
-import Data.List (elemIndex)
 
 data Nested = I Int | N [Nested] deriving (Show, Eq)
 
