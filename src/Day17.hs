@@ -65,7 +65,7 @@ talest state = maximum (Set.map snd state)
 
 makeStringRocks :: Int -> Int -> Set (Int, Int) -> String
 makeStringRocks width height state = do
-    let arrays = zip (repeat (reverse [0 .. width])) [0..height]
+    let arrays = zip (repeat (reverse [0 .. width])) [0 .. height]
     let tuples = reverse (concatMap (\(vals, y) -> map (, y) vals) arrays)
     intercalate "\n" (chunksOf (width+1) (map (`stateToChar` state) tuples))
 
@@ -96,7 +96,7 @@ main = do
     let toRepeat = 1000000000000 - cicleStart
     let (repetitions, toSimulate) = quotRem toRepeat cicleLength
     let (p2, _)  = fallNRocks nextRock (nextRock+toSimulate+1) dirs (rebuildLast10 lastState (repetitions*cicleHeight + startHeight), nextWind)
-    print $ talest p2
+    print $ talest p2 -- Right answer on input, but not on sample?...
 
     -- putStrLn $ makeStringRocks 6 25 (fst $ fallNRocks 0 15 dirs (floorState, 0))
     -- print "-----"
