@@ -103,16 +103,11 @@ main = do
 
     let mp = parseLines board 1
     let vEdges = parseVEdges (transpose board) 1
-    let hEdges = parseHEdges (board) 1
+    let hEdges = parseHEdges board 1
     let edges = Map.union hEdges vEdges
     let dir = parseDirections (last directions)
     let ((finalRow, finalCol), finalDir) = playMoves mp edges dir (1, 0) (54, 1)
 
     let p1 = (finalCol*1000) + (finalRow*4) + dirToVal finalDir
     print (finalRow, finalCol, finalDir, p1)
-
-    -- putStrLn (makeStringMap 201 201 (listToSet (Map.keys edges)))
-    -- print edges
-    -- putStrLn (makeStringMap 210 210 (listToSet (Map.keys hEdges)))
-    -- putStrLn (makeStringMap 210 210 (listToSet (Map.keys vEdges)))
 
