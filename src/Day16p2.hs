@@ -57,18 +57,16 @@ getToNextValve allCaves dists (pressure, valveCandidates, currName, time) nextVa
           addedPressure = valveOpened * (26-(time+timeToNextValve))
           debug = (pressure, currName, nextValve, time, timeToNextValve)
 
-findMaxValvePaths :: Set (Int, Set String, String, Int) -> Map String (Int, [String]) -> Map (String, String) Int -> (Int, Set String) -> (Int, Set String)
-findMaxValvePaths toExplore allCaves dists best
-    | Set.size nextStates > 0 = findMaxValvePaths continue allCaves dists currBest
-    | otherwise = currBest
-    where completed = Set.filter (\(_, valvesLeft, _, time) -> time >= 26) toExplore
+findAllPaths :: Set (Int, Set String, String, Int) -> Map String (Int, [String]) -> Map (String, String) Int -> Map (Set String) Int
+findAllPaths toExplore allCaves dists
+    | Set.size nextStates > 0 = Map.union (findAllPaths continue allCaves dists) toKeep
+    | otherwise = toKeep
+    where toKeep = Map.unionsWith max (map (\(pressure, valvesLeft, _, _) -> Map.singleton valvesLeft pressure) (Set.toList toExplore))
+          completed = Set.filter (\(_, valvesLeft, _, time) -> time >= 26) toExplore
           nextStates = Set.difference toExplore completed
           (bestCandidate, bestValvesLeft, _, _) = Set.findMax completed
           statesCandidate = Set.foldr (\st@(_, valvesLeft, _, _) acc -> Set.union (zipCandidates valvesLeft st) acc) Set.empty nextStates
           continue = Set.map (uncurry (getToNextValve allCaves dists)) statesCandidate
-          currBest
-            | Set.size completed > 0 && bestCandidate > fst best = (bestCandidate, bestValvesLeft)
-            | otherwise = best
 
 zipCandidates :: Set String -> (Int, Set String, String, Int) -> Set ((Int, Set String, String, Int), String)
 zipCandidates candidates st = Set.map (st, ) candidates
@@ -77,47 +75,24 @@ valvePressure :: String -> Map String (Int, [String]) -> Int
 valvePressure valve allCaves = pressure
     where (pressure, _) = allCaves Map.! valve
 
+pairStates :: Map (Set String) Int -> Set String -> Int -> Int
+pairStates foundStates relevantCaves currBest
+    | Map.null foundStates = currBest
+    | otherwise = max newBest continue
+    where ((toTest, a), continueMap) = fromJust $ Map.maxViewWithKey foundStates
+          toTestValvesOpen = Set.difference relevantCaves toTest
+          secondOptions = Map.filterWithKey (\k _ -> Set.isSubsetOf toTestValvesOpen k) continueMap
+          bestOption = maximum (Map.elems secondOptions)
+          newBest
+            | Map.null secondOptions = currBest
+            | otherwise = max currBest (bestOption + a)
+          continue = pairStates continueMap relevantCaves newBest
+
 main = do
     file <- readFile "input\\day_16.txt"
     let allCaves = Map.fromList (map parseInput (lines file))
     let relevantValves = Map.filter (\val -> fst val > 0) allCaves
     let dists = precomputeDists ("AA":Map.keys relevantValves) allCaves
 
-    let (pressure1, valvesLeft1) = findMaxValvePaths (Set.singleton (0, Set.fromList (Map.keys relevantValves), "AA", 0)) allCaves dists (0, Set.empty)
-    let (pressure2, valvesLeft2) = findMaxValvePaths (Set.singleton (0, valvesLeft1, "AA", 0)) allCaves dists (0, Set.empty)
-    print ((pressure1, valvesLeft1), (pressure2, valvesLeft2), pressure1+pressure2)
-
-    --print dists
-    --print $ findPath "OM" allCaves (Set.singleton ((0, "VR"), []))
-    --print relevantValves
-
-    -- let step1 = getToNextValve allCaves dists (0, Set.fromList $ Map.keys relevantValves, "AA", 0, 0) "OM"
-    -- let step2 = getToNextValve allCaves dists step1 "VR"
-    -- let step3 = getToNextValve allCaves dists step2 "SP"
-    -- let step4 = getToNextValve allCaves dists step3 "RO"
-    -- let step5 = getToNextValve allCaves dists step4 "KZ"
-    -- let step6 = getToNextValve allCaves dists step5 "DI"
-    -- let step7 = getToNextValve allCaves dists step6 "SO"
-    -- let step8 = getToNextValve allCaves dists step7 "SC"
-    -- let step9 = getToNextValve allCaves dists step8 "AJ"
-
-
-    -- let step1 = getToNextValve allCaves dists (0, Set.fromList $ Map.keys relevantValves, "AA", 0, 0) "DD"
-    -- let step2 = getToNextValve allCaves dists step1 "BB"
-    -- let step3 = getToNextValve allCaves dists step2 "JJ"
-    -- let step4 = getToNextValve allCaves dists step3 "HH"
-    -- let step5 = getToNextValve allCaves dists step4 "EE"
-    -- let step6 = getToNextValve allCaves dists step5 "CC"
-    --let step7 = getToNextValve allCaves dists step6 "SO"
-    --let step8 = getToNextValve allCaves dists step7 "SC"
-    --let step9 = getToNextValve allCaves dists step8 "AJ"
-
-    -- print step1
-    -- print step2
-    -- print step3
-    -- print step4
-    -- print step5
-    -- print step6
-    -- print step7
-    -- print step8
-    -- print step9
+    let paths = findAllPaths (Set.singleton (0, Set.fromList (Map.keys relevantValves), "AA", 0)) allCaves dists
+    print $ pairStates paths (Set.fromList (Map.keys relevantValves)) 0 
