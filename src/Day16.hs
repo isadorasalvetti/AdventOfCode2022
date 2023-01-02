@@ -9,7 +9,6 @@ import qualified Data.Map as Map
 
 import Data.Set (Set)
 import qualified Data.Set as Set
-import GHC.Generics (prec)
 
 
 parseValve ('V':'a':'l':'v':'e':' ':a:b:rst) = (a:[b], rst)
